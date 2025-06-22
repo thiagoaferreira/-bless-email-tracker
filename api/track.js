@@ -69,15 +69,15 @@ export default async function handler(req, res) {
         if (type === 'click') {
             const redirects = {
                 'botao_whatsapp': 'https://api.whatsapp.com/send?phone=5511913510728&text=Quero%20fazer%20meu%20pedidos%2C%20preciso%20de%20mais%20informa%C3%A7%C3%B5es',
-                'botao_promocoes': 'https://www.blesscabeleireiros.com.br/promocoes?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless',
-                'logo': 'https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless',
-                'banner_promocional': 'https://www.blesscabeleireiros.com.br/promocoes?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless',
+                'botao_promocoes': `https://www.blesscabeleireiros.com.br/promocoes?utm_source=email&utm_medium=newsletter&utm_campaign=${campaign}&utm_content=botao_promocoes&utm_term=${user}`,
+                'logo': `https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=${campaign}&utm_content=logo&utm_term=${user}`,
+                'banner_promocional': `https://www.blesscabeleireiros.com.br/promocoes?utm_source=email&utm_medium=newsletter&utm_campaign=${campaign}&utm_content=banner&utm_term=${user}`,
                 'instagram': 'https://www.instagram.com/blesscabeleireiros/',
                 'facebook': 'https://www.facebook.com/blesscabeleireiros',
                 'tiktok': 'https://www.tiktok.com/@blesscabeleireiros',
-                'link_site_rodape': 'https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless',
-                'cupom_bemvindo10': 'https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless&cupom=BEMVINDO10',
-                'cupom_bemvindo10_destaque': 'https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless&cupom=BEMVINDO10',
+                'link_site_rodape': `https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=${campaign}&utm_content=rodape&utm_term=${user}`,
+                'cupom_bemvindo10': `https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=${campaign}&utm_content=cupom&utm_term=${user}&cupom=BEMVINDO10`,
+                'cupom_bemvindo10_destaque': `https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=${campaign}&utm_content=cupom_destaque&utm_term=${user}&cupom=BEMVINDO10`,
                 'unsubscribe': 'https://www.blesscabeleireiros.com.br/descadastro'
             };
             
