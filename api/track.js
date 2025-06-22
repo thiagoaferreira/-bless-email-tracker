@@ -4,7 +4,8 @@ export default async function handler(req, res) {
         user = 'anonymous', 
         source = 'email',
         product = '',
-        type = 'open'
+        type = 'open',
+        redirect = '' // Novo parâmetro para redirecionamento
     } = req.query;
     
     const timestamp = new Date().toISOString();
@@ -12,24 +13,26 @@ export default async function handler(req, res) {
     console.log('📧 Bless Email Tracking:', { 
         campaign, 
         user, 
+        email, // Adicionado o email no log
         source, 
         product,
         type,
+        redirect,
         timestamp,
         userAgent: req.headers['user-agent'],
         ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress
     });
     
-    // Enviar DIRETO para GA4 via Measurement Protocol
+    // Enviar para GA4 via Measurement Protocol
     try {
-        const measurementId = 'G-ZZSWBCPVTX'; // Seu Measurement ID
-        const apiSecret = '5C6odVDnQZqTOL2p-87Zlg'; // API Secret do GA4
+        const measurementId = 'G-ZZSWBCPVTX';
+        const apiSecret = '5C6odVDnQZqTOL2p-87Zlg';
         
-        // Gerar client_id único baseado no user ou criar um novo
         const clientId = user !== 'anonymous' ? user : `${Date.now()}.${Math.random()}`;
         
         const payload = {
             'client_id': clientId,
+            'user_id': email || user, // Usar email como user_id se disponível
             'events': [{
                 'name': type === 'click' ? 'email_click' : 'email_open',
                 'params': {
@@ -41,9 +44,12 @@ export default async function handler(req, res) {
                     'product_name': product,
                     'event_category': 'Email Marketing',
                     'event_label': `${campaign} - ${type}`,
+                    'customer_code': user, // Código do cliente
+                    'customer_email': email, // Email do cliente
                     'custom_parameter_1': product,
                     'timestamp': timestamp,
-                    'engagement_time_msec': 100 // Tempo mínimo de engajamento
+                    'engagement_time_msec': 100,
+                    'redirect_url': redirect || 'none'
                 }
             }]
         };
@@ -61,37 +67,44 @@ export default async function handler(req, res) {
         );
         
         console.log('✅ GA4 Response Status:', response.status);
-        console.log('✅ GA4 Response OK:', response.ok);
-        
-        if (!response.ok) {
-            console.log('❌ GA4 Error Details:', await response.text());
-        }
         
     } catch (error) {
         console.log('❌ GA4 Error:', error.message);
-        console.log('❌ Full Error:', error);
     }
     
-    // Opcional: Enviar também para um webhook ou banco de dados próprio
-    try {
-        // Aqui você pode adicionar seu próprio sistema de tracking
-        // Por exemplo, salvar em uma planilha Google Sheets ou banco de dados
+    // REDIRECIONAMENTO para cliques
+    if (type === 'click' && redirect) {
+        // URLs de redirecionamento baseadas no produto
+        const redirectMap = {
+            'botao_whatsapp': 'https://api.whatsapp.com/send?phone=5511913510728&text=Quero%20fazer%20meu%20pedidos%2C%20preciso%20de%20mais%20informa%C3%A7%C3%B5es',
+            'botao_promocoes': 'https://www.blesscabeleireiros.com.br/promocoes?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless',
+            'logo': 'https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless',
+            'banner_promocional': 'https://www.blesscabeleireiros.com.br/promocoes?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless',
+            'instagram': 'https://www.instagram.com/blesscabeleireiros/',
+            'facebook': 'https://www.facebook.com/blesscabeleireiros',
+            'tiktok': 'https://www.tiktok.com/@blesscabeleireiros',
+            'link_site_rodape': 'https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless',
+            'cupom_bemvindo10': 'https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless&cupom=BEMVINDO10',
+            'cupom_bemvindo10_destaque': 'https://www.blesscabeleireiros.com.br?utm_source=email&utm_medium=newsletter&utm_campaign=mega_liquidacao_bless&cupom=BEMVINDO10'
+        };
         
-        // Exemplo para Google Sheets (se configurado):
-        // await sendToGoogleSheets({ campaign, user, source, product, type, timestamp });
+        const targetUrl = redirectMap[product] || redirect;
         
-    } catch (error) {
-        console.log('📊 Internal tracking error:', error.message);
+        if (targetUrl) {
+            console.log('🔗 Redirecting to:', targetUrl);
+            res.writeHead(302, { 'Location': targetUrl });
+            res.end();
+            return;
+        }
     }
     
-    // Retornar pixel transparente 1x1
+    // Pixel transparente para aberturas
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     res.setHeader('Access-Control-Allow-Origin', '*');
     
-    // Pixel transparente base64
     const pixel = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 
         'base64'
