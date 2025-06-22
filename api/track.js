@@ -1,53 +1,40 @@
-export default async function handler(req, res) {
+export default function handler(req, res) {
     const { campaign = 'unknown', user = 'anonymous', source = 'email' } = req.query;
     
-    const trackingData = {
-        campaign, 
-        user, 
-        source,
-        timestamp: new Date().toISOString(),
-        ip: req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown',
-        userAgent: req.headers['user-agent'] || 'unknown'
-    };
+    console.log('🚀 Email tracking:', { campaign, user, source, timestamp: new Date() });
     
-    console.log('🚀 Email tracking:', trackingData);
-    
-    // Enviar para Google Analytics via Measurement Protocol
-    try {
-        const gtmData = {
-            'client_id': user,
-            'events': [{
-                'name': 'email_open',
-                'params': {
-                    'campaign_name': campaign,
-                    'source': source,
-                    'medium': 'email',
-                    'content': 'pixel_tracking'
-                }
-            }]
-        };
-        
-        // Chamada para GA4 Measurement Protocol
-        const gaResponse = await fetch(`https://www.google-analytics.com/mp/collect?measurement_id=G-XXXXXXXXXX&api_secret=YOUR_API_SECRET`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(gtmData)
+    // Criar script que injeta no dataLayer quando a página carrega
+    const gtmScript = `
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+            'event': 'server_email_open',
+            'email_campaign': '${campaign}',
+            'email_user': '${user}',
+            'email_source': '${source}',
+            'email_timestamp': '${new Date().toISOString()}'
         });
+        console.log('📊 DataLayer atualizado:', window.dataLayer);
+    </script>
+    `;
+    
+    // Se é requisição de imagem, retornar pixel
+    if (req.headers.accept && req.headers.accept.includes('image')) {
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'no-cache');
         
-        console.log('📊 GA4 Response:', gaResponse.status);
-        
-    } catch (error) {
-        console.log('❌ GA4 Error:', error.message);
+        const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
+        res.end(pixel);
+    } else {
+        // Se é requisição normal, retornar HTML com script
+        res.setHeader('Content-Type', 'text/html');
+        res.end(`
+        <!DOCTYPE html>
+        <html><head><title>Email Tracking</title></head>
+        <body>
+            ${gtmScript}
+            <img src="/api/track?campaign=${campaign}&user=${user}&source=${source}" width="1" height="1" style="display:none;">
+        </body></html>
+        `);
     }
-    
-    // Retornar pixel
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    
-    const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
-    
-    res.end(pixel);
 }
